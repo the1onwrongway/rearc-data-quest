@@ -9,3 +9,7 @@ data/
 # Environment
 .env
 .venv
+
+# Local / scratch Files
+src/check_html.py
+commands.txt
