@@ -1,0 +1,8 @@
+milangabriel@Pothi rearc-data-quest % git init
+Reinitialized existing Git repository in /Users/milangabriel/Downloads/rearc-data-quest/.git/
+milangabriel@Pothi rearc-data-quest % mkdir -p data/raw/bls data/raw/api src notebooks
+milangabriel@Pothi rearc-data-quest % touch readme.md requirements.txt
+milangabriel@Pothi rearc-data-quest % touch commands.txt
+milangabriel@Pothi rearc-data-quest % touch src/bls_sync.py src/population.py
+milangabriel@Pothi rearc-data-quest % touch .gitignore                       
+milangabriel@Pothi rearc-data-quest % 
