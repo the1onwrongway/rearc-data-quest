@@ -13,3 +13,6 @@ data/
 # Local / scratch Files
 src/check_html.py
 commands.txt
+
+# macOS
+.DS_Store
