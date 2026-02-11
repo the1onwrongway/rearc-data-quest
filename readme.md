@@ -202,6 +202,8 @@ rearc-data-quest/
 │
 ├── data/
 │   └── raw/
+│          └── api/
+│          └── bls/
 │
 ├── requirements.txt
 └── README.md
