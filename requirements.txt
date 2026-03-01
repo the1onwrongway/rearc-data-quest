@@ -1,4 +1,6 @@
 requests
 pandas
 numpy
-jupyter
+jupyterboto3
+python-dotenv
+boto3

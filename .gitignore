@@ -15,4 +15,4 @@ src/check_html.py
 commands.txt
 
 # macOS
-.DS_Store
+.DS_Store.env
