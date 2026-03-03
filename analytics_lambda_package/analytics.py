@@ -10,9 +10,18 @@ def lambda_handler(event,context):
     print('Received SQS Event')
 
     for record in event["Records"]:
-        body = json.loads(record["body"])
-        s3_event = body["Records"][0]
+        #body = json.loads(record["body"])
+        #s3_event = body["Records"][0]
 
+        body = json.loads(record["body"])
+
+        # Ignore S3 test events
+        if body.get("Event") == "s3:TestEvent":
+            print("Ignoring S3 TestEvent")
+            return
+
+        s3_event = body["Records"][0]
+         
         bucket = s3_event["s3"]["bucket"]["name"]
         key =  s3_event["s3"]["object"]["key"]
 
