@@ -1,25 +1,72 @@
-# Data
+# =========================
+# macOS
+# =========================
+.DS_Store
+
+# =========================
+# Python
+# =========================
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.venv/
+.ipynb_checkpoints/
+
+# =========================
+# Environment files
+# =========================
+.env
+
+# =========================
+# Terraform
+# =========================
+*.tfstate
+*.tfstate.backup
+.terraform/
+
+# =========================
+# Local Data
+# =========================
 data/
 
-# Python
---pycache__/
-*.pyc
-.ipyb_checkpoints/
-.venv/
-
-
-# Environment
-.env
-.venv
-
-# Local / scratch Files
+# =========================
+# Local scratch / dev files
+# =========================
 src/check_html.py
 commands.txt
 
-# macOS
-.DS_Store.env
+# =========================
+# Lambda build artifacts
+# Ignore dependency folders
+# Keep only zip files
+# =========================
+lambda_package/bin/
+lambda_package/certifi/
+lambda_package/certifi-*.dist-info/
+lambda_package/charset_normalizer/
+lambda_package/charset_normalizer-*.dist-info/
+lambda_package/idna/
+lambda_package/idna-*.dist-info/
+lambda_package/requests/
+lambda_package/requests-*.dist-info/
+lambda_package/urllib3/
+lambda_package/urllib3-*.dist-info/
+lambda_package/*.so
 
-#Terraform
-*.tfstate
-*.tfstate.backup
-.terraform/.DS_Store
+analytics_lambda_package/bin/
+analytics_lambda_package/certifi/
+analytics_lambda_package/certifi-*.dist-info/
+analytics_lambda_package/charset_normalizer/
+analytics_lambda_package/charset_normalizer-*.dist-info/
+analytics_lambda_package/idna/
+analytics_lambda_package/idna-*.dist-info/
+analytics_lambda_package/requests/
+analytics_lambda_package/requests-*.dist-info/
+analytics_lambda_package/urllib3/
+analytics_lambda_package/urllib3-*.dist-info/
+analytics_lambda_package/*.so
+
+# Keep Lambda zip artifacts
+!lambda_package/*.zip
+!analytics_lambda_package/*.zip
