@@ -1,7 +1,12 @@
 # Rearc Data Quest
 
 This repository contains my solution to the Rearc Data Quest.  
-The project demonstrates data ingestion, data processing, analytics, and infrastructure design using a clean, local-first implementation that maps directly to AWS services.
+The project demonstrates data ingestion, data processing, analytics, and a fully deployed AWS serverless architecture using Infrastructure as Code (Terraform).
+
+The implementation supports both:
+
+- A clean local-first execution model
+- A fully automated AWS deployment
 
 ---
 
@@ -12,19 +17,89 @@ The quest consists of four parts:
 1. **Part 1 – BLS Dataset Ingestion**
 2. **Part 2 – Population API Ingestion**
 3. **Part 3 – Data Analytics**
-4. **Part 4 – Infrastructure Design**
+4. **Part 4 – Infrastructure Deployment (Terraform)**
 
 The solution emphasizes:
 
 - Incremental data ingestion
 - Idempotent processing
 - Clean data transformations
-- Event-driven architecture design
+- Event-driven architecture
+- Infrastructure as Code
 - Clear documentation and structure
 
 ---
 
-## Part 1 – BLS Dataset Ingestion
+# AWS Deployment (Terraform Implementation)
+
+In addition to the local implementation, the complete pipeline is deployed on AWS using Terraform.
+
+All infrastructure is defined under:
+
+```
+infra/terraform/
+```
+
+### Services Provisioned
+
+- Amazon S3 (raw data storage)
+- AWS Lambda (Ingestion)
+- AWS Lambda (Analytics)
+- Amazon SQS (decoupled event processing)
+- Amazon EventBridge (scheduled trigger)
+- IAM Roles & Policies
+- S3 → SQS notification configuration
+- SQS → Lambda event source mapping
+- CloudWatch Logs
+
+### Deployment
+
+```bash
+cd infra/terraform
+terraform init
+terraform plan
+terraform apply
+```
+
+This provisions the entire event-driven data pipeline.
+
+### Destroy Infrastructure
+
+```bash
+terraform destroy
+```
+
+---
+
+## Production Data Flow (AWS)
+
+```
+EventBridge (Daily Schedule)
+        ↓
+Lambda – Ingestion
+        ↓
+S3 (raw/bls/, raw/api/)
+        ↓
+S3 ObjectCreated Event
+        ↓
+SQS Queue
+        ↓
+Lambda – Analytics
+        ↓
+CloudWatch Logs
+```
+
+This architecture ensures:
+
+- Loose coupling
+- Retry capability via SQS
+- Event-driven execution
+- Scalable serverless processing
+- Clean separation of ingestion and analytics layers
+
+---
+
+# Part 1 – BLS Dataset Ingestion
 
 File: `src/bls_sync.py`
 
@@ -43,11 +118,15 @@ This script incrementally synchronizes the BLS productivity time-series dataset.
 data/raw/bls/
 ```
 
-This mirrors how ingestion would write to an S3 bucket in production.
+In AWS deployment, files are written to:
+
+```
+s3://<bucket>/raw/bls/
+```
 
 ---
 
-## Part 2 – Population API Ingestion
+# Part 2 – Population API Ingestion
 
 File: `src/population.py`
 
@@ -58,23 +137,32 @@ This script fetches U.S. population data from the DataUSA API.
 - Parameterized API request
 - Raw JSON storage (no transformation during ingestion)
 - Timestamped output files
-- Stored under:
+- Idempotent upload (skips if file already exists for the day)
+
+Local storage:
 
 ```
 data/raw/api/
 ```
 
-Raw responses are preserved to maintain ingestion integrity and separation of concerns.
+AWS deployment writes to:
+
+```
+s3://<bucket>/raw/api/
+```
 
 ---
 
-## Part 3 – Data Analytics
+# Part 3 – Data Analytics
 
-File: `notebooks/part3_analysis.ipynb`
+Local notebook: `notebooks/part3_analysis.ipynb`  
+AWS implementation: `analytics_lambda_package/analytics.py`
 
-The notebook performs the required analytics tasks using pandas.
+The analytics layer performs the required tasks.
 
-### 1. Population Statistics
+---
+
+## 1. Population Statistics (2013–2018)
 
 - Filters population data for years 2013–2018 (inclusive)
 - Computes:
@@ -83,7 +171,7 @@ The notebook performs the required analytics tasks using pandas.
 
 ---
 
-### 2. Best Year per `series_id`
+## 2. Best Year per `series_id`
 
 For each `series_id`:
 
@@ -96,103 +184,85 @@ Produces:
 series_id | year | value
 ```
 
-This matches the specification provided in the Quest example.
-
 ---
 
-### 3. Target Series Join
+## 3. Target Series Join
 
 For:
 
 - `series_id = PRS30006032`
 - `period = Q01`
 
-The notebook:
+The logic:
 
 - Filters relevant rows
-- Joins with population data on `year`
+- Performs left join with population on `year`
 - Returns:
 
 ```
 series_id | year | period | value | Population
 ```
 
-The join uses a left join to respect the requirement:
+The left join ensures:
 
 > "Population for that given year (if available)."
 
 ---
 
-### Data Cleaning Considerations
+# Lambda Packaging
 
-- Trimmed whitespace in column names and string fields
-- Enforced correct data types (`year`, `value`, `Population`)
-- Ensured consistent join keys
-- Validated grouping logic
-
----
-
-## Part 4 – Infrastructure Design
-
-File: [`docs/architecture.md`](docs/architecture.md)
-
-The infrastructure is designed using AWS services in an event-driven pattern.
-
-### Components
-
-- **EventBridge** – Daily scheduling trigger
-- **Lambda (Ingestion Layer)** – Executes Part 1 & Part 2
-- **S3 Bucket** – Stores raw data (Bronze layer)
-- **SQS Queue** – Triggered by S3 event notifications
-- **Lambda (Analytics Layer)** – Executes aggregation logic
-- **CloudWatch Logs** – Logs final outputs
-
----
-
-### Data Flow
+Lambda artifacts are prebuilt and included:
 
 ```
-EventBridge
-    ↓
-Lambda (Ingestion)
-    ↓
-S3 (Raw Storage)
-    ↓
-S3 Event Notification
-    ↓
-SQS
-    ↓
-Lambda (Analytics)
-    ↓
-CloudWatch Logs
+lambda_package/lambda_ingestion.zip
+analytics_lambda_package/analytics_lambda.zip
 ```
+
+Terraform references these zip files directly.
+
+This ensures the project can be deployed without rebuilding dependencies.
 
 ---
 
-### Architectural Pattern
+# Architectural Pattern
 
 The design loosely follows a medallion-style architecture:
 
-- **Bronze** – Raw ingested data in S3
-- **Silver** – Cleaned and aggregated data
+- **Bronze** – Raw ingested data (S3)
+- **Silver** – Cleaned and aggregated datasets
 - **Gold** – Final analytical outputs
 
-Infrastructure can be provisioned using:
+Additional design principles:
 
-- AWS CDK
-- CloudFormation
-- Terraform
+- Event-driven architecture
+- Idempotent ingestion
+- Decoupled compute layers
+- Infrastructure as Code
+- Reproducible deployment
 
 ---
 
-## Project Structure
+# Project Structure
 
 ```
 rearc-data-quest/
 │
 ├── src/
 │   ├── bls_sync.py
-│   └── population.py
+│   ├── population.py
+│   ├── lambda_ingestion.py
+│   └── analytics.py
+│
+├── lambda_package/
+│   └── lambda_ingestion.zip
+│
+├── analytics_lambda_package/
+│   └── analytics_lambda.zip
+│
+├── infra/
+│   └── terraform/
+│       ├── main.tf
+│       └── provider.tf
 │
 ├── notebooks/
 │   └── part3_analysis.ipynb
@@ -200,18 +270,13 @@ rearc-data-quest/
 ├── docs/
 │   └── architecture.md
 │
-├── data/
-│   └── raw/
-│          └── api/
-│          └── bls/
-│
 ├── requirements.txt
 └── README.md
 ```
 
 ---
 
-## Running the Project Locally
+# Running the Project Locally
 
 ### 1. Create Virtual Environment
 
@@ -250,24 +315,28 @@ Run all cells.
 
 ## AI Usage Disclosure
 
-AI tools were used as a reference during development for:
+AI tools were used as development aids during this project for:
 
-- Debugging HTTP behavior
-- Structuring pandas transformations
-- Refining architecture explanation
+- Troubleshooting HTTP behavior
+- Reviewing pandas transformation patterns
+- Verifying Terraform syntax
+- Clarifying AWS service configurations
 
-All logic, implementation, and architectural decisions were verified and understood independently.
+All architectural decisions, implementation logic, debugging steps, and final code were fully reviewed, tested, and understood independently before submission.
 
 ---
 
-## Summary
+# Summary
 
 This solution demonstrates:
 
 - Incremental ingestion design
+- Idempotent API ingestion
 - Data cleaning and transformation practices
 - Aggregation and join logic
-- Event-driven AWS pipeline architecture
+- Fully deployed AWS serverless pipeline
+- Infrastructure as Code using Terraform
+- Event-driven architecture with SQS decoupling
 - Clean repository organization and documentation
 
-The implementation prioritizes correctness, clarity, and production-aligned design decisions.
+The implementation prioritizes correctness, clarity, reproducibility, and production-aligned engineering practices.
