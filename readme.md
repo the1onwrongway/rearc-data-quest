@@ -312,6 +312,27 @@ notebooks/part3_analysis.ipynb
 Run all cells.
 
 ---
+### Future Improvements
+
+The current ingestion logic detects new files by comparing filenames between the
+remote BLS directory and objects already present in S3. This ensures idempotent
+execution and avoids unnecessary writes.
+
+However, if the source system were to modify the contents of an existing file
+without changing the filename, the current implementation would not detect the
+update.
+
+In a production system, this could be addressed by:
+
+- Comparing file checksums (e.g., MD5 hash) between the source and stored object
+- Using HTTP `Last-Modified` headers to detect upstream updates
+- Storing file metadata (hash or timestamp) in DynamoDB to track historical versions
+
+This enhancement would allow the ingestion pipeline to detect content updates
+while still preserving idempotent behavior.
+
+---
+
 
 ## AI Usage Disclosure
 
